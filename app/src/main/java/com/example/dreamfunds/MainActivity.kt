@@ -1,166 +1,150 @@
 package com.example.dreamfunds
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.*
+import androidx.activity.viewModels
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.dreamfunds.ui.components.drawer.AppDrawer
+import com.example.dreamfunds.ui.navigation.AppNavHost
 import com.example.dreamfunds.ui.theme.DreamFundsTheme
+import com.example.dreamfunds.viewmodel.AuthViewModel
+import com.example.dreamfunds.viewmodel.SessionState
+import io.github.jan.supabase.auth.handleDeeplinks
 import kotlinx.coroutines.launch
 
+sealed class Screen(val route: String) {
+    object Splash    : Screen("splash")
+    object Login     : Screen("login")
+    object Register  : Screen("register")
+    object Dashboard : Screen("dashboard")
+    object Reports   : Screen("reports")
+    object Profile   : Screen("profile")
+}
+
 class MainActivity : ComponentActivity() {
+
+    private val authViewModel: AuthViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("DeepLink", "onCreate called")
+        handleSupabaseDeepLink(intent)
         setContent {
             DreamFundsTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    DreamFundsApp()
+                Surface(color = MaterialTheme.colorScheme.background) {
+                    DreamFundsApp(authViewModel = authViewModel)
                 }
             }
         }
     }
-}
 
-sealed class Screen(val route: String, val title: String) {
-    object Login : Screen("login", "Login")
-    object Register : Screen("register", "Register")
-    object Dashboard : Screen("dashboard", "Dashboard")
-    object Reports : Screen("reports", "Reports")
-    object Profile : Screen("profile", "Profile")
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        Log.d("DeepLink", "onNewIntent called")
+        handleSupabaseDeepLink(intent)
+    }
+
+    private fun handleSupabaseDeepLink(intent: Intent?) {
+        val uri: Uri = intent?.data ?: run {
+            Log.d("DeepLink", "No data URI in intent")
+            return
+        }
+        Log.d("DeepLink", "URI: $uri")
+        Log.d("DeepLink", "Scheme: ${uri.scheme}, Host: ${uri.host}, Path: ${uri.path}, Fragment: ${uri.fragment}")
+
+        if (uri.scheme != "dreamfunds") {
+            Log.d("DeepLink", "Scheme is not dreamfunds, ignoring")
+            return
+        }
+
+        val fragment = uri.fragment
+        if (fragment == null || !fragment.contains("access_token")) {
+            Log.d("DeepLink", "Fragment does not contain access_token, ignoring")
+            return
+        }
+
+        Log.d("DeepLink", "Processing deep link...")
+        try {
+            SupabaseClientProvider.client.handleDeeplinks(intent)
+            Log.d("DeepLink", "handleDeeplinks succeeded")
+            // After processing, refresh session and profile
+            authViewModel.refreshSessionAndProfile()
+        } catch (e: Exception) {
+            Log.e("DeepLink", "handleDeeplinks failed: ${e.message}", e)
+        }
+    }
 }
 
 @Composable
-fun DreamFundsApp() {
-    val navController = rememberNavController()
-    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    
-    // Shared state for the whole app
-    var transactions by remember { 
-        mutableStateOf(mutableListOf(
-            Transaction("Salary Deposit", "March 1, 2025", "45,000.00", true, "Income"),
-            Transaction("Grocery Shop", "March 3, 2025", "2,500.00", false, "Food"),
-            Transaction("Internet Bill", "March 2, 2025", "1,500.00", false, "Bills"),
-            Transaction("Coffee", "March 3, 2025", "250.00", false, "Food")
-        ))
+fun DreamFundsApp(authViewModel: AuthViewModel) {
+    val navController                = rememberNavController()
+    val drawerState                  = rememberDrawerState(DrawerValue.Closed)
+    val scope                        = rememberCoroutineScope()
+
+    val sessionState by authViewModel.sessionState.collectAsState()
+    val profile      by authViewModel.profile.collectAsState()
+
+    val navBackStackEntry  by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    val isAuthScreen = currentDestination?.route in setOf(
+        Screen.Login.route,
+        Screen.Register.route,
+        Screen.Splash.route,
+    )
+
+    LaunchedEffect(sessionState) {
+        when (sessionState) {
+            SessionState.LoggedIn  -> {
+                authViewModel.loadProfile()
+                navController.navigate(Screen.Dashboard.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            }
+            SessionState.LoggedOut -> navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+            SessionState.Loading   -> Unit
+        }
     }
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-
     ModalNavigationDrawer(
-        drawerState = drawerState,
-        gesturesEnabled = currentDestination?.route != Screen.Login.route && currentDestination?.route != Screen.Register.route,
-        drawerContent = {
-            ModalDrawerSheet(
-                drawerContainerColor = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.width(300.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.dreamfunds),
-                        contentDescription = "Logo",
-                        modifier = Modifier.size(80.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                val items = listOf(
-                    Triple(Screen.Dashboard, "Dashboard", Icons.Default.Dashboard),
-                    Triple(Screen.Reports, "Reports", Icons.Default.BarChart),
-                    Triple(Screen.Profile, "Profile", Icons.Default.Person)
-                )
-
-                items.forEach { (screen, label, icon) ->
-                    NavigationDrawerItem(
-                        label = { Text(label) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
-                        icon = { Icon(icon, contentDescription = null) },
-                        onClick = {
-                            navController.navigate(screen.route) {
-                                popUpTo(Screen.Dashboard.route) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                            scope.launch { drawerState.close() }
-                        },
-                        modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                    )
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                NavigationDrawerItem(
-                    label = { Text("Logout") },
-                    selected = false,
-                    icon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
-                    onClick = {
-                        navController.navigate(Screen.Login.route) { popUpTo(0) }
-                        scope.launch { drawerState.close() }
-                    },
-                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
-                )
-            }
-        }
+        drawerState     = drawerState,
+        gesturesEnabled = !isAuthScreen,
+        drawerContent   = {
+            AppDrawer(
+                profile            = profile,
+                currentDestination = currentDestination,
+                onNavigate         = { screen ->
+                    navController.navigate(screen.route) {
+                        popUpTo(Screen.Dashboard.route) { saveState = true }
+                        launchSingleTop = true
+                        restoreState    = true
+                    }
+                    scope.launch { drawerState.close() }
+                },
+                onLogout = {
+                    scope.launch { drawerState.close() }
+                    authViewModel.logout {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                },
+            )
+        },
     ) {
-        NavHost(navController = navController, startDestination = Screen.Login.route) {
-            composable(Screen.Login.route) { 
-                LoginScreen(
-                    onLoginSuccess = { navController.navigate(Screen.Dashboard.route) { popUpTo(Screen.Login.route) { inclusive = true } } },
-                    onRegisterClick = { navController.navigate(Screen.Register.route) }
-                ) 
-            }
-            composable(Screen.Register.route) {
-                RegisterScreen(
-                    onRegisterSuccess = { navController.navigate(Screen.Dashboard.route) { popUpTo(Screen.Login.route) { inclusive = true } } },
-                    onBackToLogin = { navController.popBackStack() }
-                )
-            }
-            composable(Screen.Dashboard.route) { 
-                DashboardScreen(
-                    transactions = transactions,
-                    onAddTransaction = { new -> 
-                        val updated = transactions.toMutableList()
-                        updated.add(new)
-                        transactions = updated
-                    },
-                    onOpenDrawer = { scope.launch { drawerState.open() } }
-                ) 
-            }
-            composable(Screen.Reports.route) { 
-                ReportsScreen(
-                    transactions = transactions,
-                    onOpenDrawer = { scope.launch { drawerState.open() } }
-                ) 
-            }
-            composable(Screen.Profile.route) { 
-                ProfileScreen(onBack = { navController.popBackStack() }) 
-            }
-        }
+        AppNavHost(
+            navController = navController,
+            authViewModel = authViewModel,
+            onOpenDrawer  = { scope.launch { drawerState.open() } },
+        )
     }
 }
