@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/dreamfunds/data/repository/AuthRepository.kt
 package com.example.dreamfunds.data.repository
 
 import com.example.dreamfunds.SupabaseClientProvider
@@ -79,14 +78,24 @@ class AuthRepository {
     }
 
     /**
-     * Update the user's full name only in the profiles table.
-     * Name changes take effect immediately with no confirmation needed.
+     * Update the user's full name and avatar URL in the profiles table.
+     * Changes take effect immediately with no confirmation needed.
      */
-    suspend fun updateName(fullName: String): Result<Unit> {
+    suspend fun updateProfile(fullName: String, avatarUrl: String?): Result<Unit> {
         return try {
             val userId = auth.currentUserOrNull()?.id
                 ?: return Result.failure(Exception("Not logged in"))
-            db["profiles"].update(mapOf("full_name" to fullName)) {
+
+            // Build the map of fields we want to update
+            val updates = mutableMapOf<String, String>()
+            updates["full_name"] = fullName
+
+            // Only add the avatar_url to the update if it's not null
+            if (avatarUrl != null) {
+                updates["avatar_url"] = avatarUrl
+            }
+
+            db["profiles"].update(updates) {
                 filter { eq("id", userId) }
             }
             Result.success(Unit)
@@ -114,14 +123,6 @@ class AuthRepository {
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
-
-    /**
-     * Legacy combined update — kept for backward compatibility.
-     * Prefer updateName() + requestEmailChange() separately.
-     */
-    suspend fun updateProfile(fullName: String, email: String): Result<Unit> {
-        return updateName(fullName)
     }
 
     /** Change the current user's password. */

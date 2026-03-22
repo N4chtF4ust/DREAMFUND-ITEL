@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/dreamfunds/ui/screens/ReportsScreen.kt
 package com.example.dreamfunds.ui.screens
 
 import androidx.compose.foundation.background
@@ -24,6 +23,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.dreamfunds.ui.theme.DreamFundsTheme // <-- IMPORTED YOUR THEME HERE
 import com.example.dreamfunds.viewmodel.ReportItem
 import com.example.dreamfunds.viewmodel.ReportsViewModel
 
@@ -328,28 +328,6 @@ fun ReportProgressItem(item: ReportItem) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Green preview theme (consistent across all screens)
-// ─────────────────────────────────────────────────────────────
-private val GreenColorScheme = lightColorScheme(
-    primary          = Color(0xFF2E7D32),
-    onPrimary        = Color.White,
-    primaryContainer = Color(0xFFA5D6A7),
-    secondary        = Color(0xFF388E3C),
-    onSecondary      = Color.White,
-    tertiary         = Color(0xFF81C784),
-    background       = Color(0xFFF1F8E9),
-    surface          = Color(0xFFF1F8E9),
-    error            = Color(0xFFB00020),
-    onBackground     = Color(0xFF1B1B1B),
-    onSurface        = Color(0xFF1B1B1B),
-)
-
-@Composable
-private fun DreamFundsPreviewTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = GreenColorScheme, content = content)
-}
-
-// ─────────────────────────────────────────────────────────────
 // Fake data helpers for previews
 // ─────────────────────────────────────────────────────────────
 private val fakeReportItems = listOf(
@@ -616,12 +594,12 @@ private fun ReportsScreenStateless(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Previews
+// Previews (Now using your central DreamFundsTheme)
 // ─────────────────────────────────────────────────────────────
 @Preview(showBackground = true, name = "Reports — With Data")
 @Composable
 private fun ReportsWithDataPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         ReportsScreenStateless(
             displayMonth     = "March 2026",
             monthOffset      = 0,
@@ -641,7 +619,7 @@ private fun ReportsWithDataPreview() {
 @Preview(showBackground = true, name = "Reports — Empty Month")
 @Composable
 private fun ReportsEmptyPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         ReportsScreenStateless(
             displayMonth     = "January 2026",
             monthOffset      = -2,
@@ -661,7 +639,7 @@ private fun ReportsEmptyPreview() {
 @Preview(showBackground = true, name = "Reports — Over Budget")
 @Composable
 private fun ReportsOverBudgetPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         ReportsScreenStateless(
             displayMonth     = "February 2026",
             monthOffset      = -1,
@@ -681,7 +659,7 @@ private fun ReportsOverBudgetPreview() {
 @Preview(showBackground = true, name = "Reports — Loading")
 @Composable
 private fun ReportsLoadingPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         ReportsScreenStateless(
             displayMonth     = "March 2026",
             monthOffset      = 0,

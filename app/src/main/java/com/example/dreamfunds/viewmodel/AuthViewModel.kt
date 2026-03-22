@@ -8,6 +8,7 @@ import com.example.dreamfunds.data.repository.AuthRepository
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.exception.AuthSessionMissingException
 import io.github.jan.supabase.auth.status.SessionStatus
+import io.github.jan.supabase.storage.storage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,9 +49,12 @@ class AuthViewModel : ViewModel() {
     private val _changePasswordState = MutableStateFlow<AuthState>(AuthState.Idle)
     val changePasswordState: StateFlow<AuthState> = _changePasswordState.asStateFlow()
 
-    /** Tracks the state of an email change request. */
     private val _changeEmailState = MutableStateFlow<AuthState>(AuthState.Idle)
     val changeEmailState: StateFlow<AuthState> = _changeEmailState.asStateFlow()
+
+    // Version counter for avatar cache busting
+    private val _profileUpdateVersion = MutableStateFlow(0)
+    val profileUpdateVersion: StateFlow<Int> = _profileUpdateVersion.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -76,11 +80,9 @@ class AuthViewModel : ViewModel() {
 
     fun isLoggedIn(): Boolean = repo.isLoggedIn()
 
-    // ── Google Sign-In ────────────────────────────────────────────────────────
     fun onGoogleSignInSuccess() { _authState.value = AuthState.Success }
     fun onGoogleSignInError(message: String) { _authState.value = AuthState.Error(message) }
 
-    // ── Login ─────────────────────────────────────────────────────────────────
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
@@ -102,7 +104,6 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // ── Register ──────────────────────────────────────────────────────────────
     fun register(fullName: String, email: String, password: String) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
@@ -114,7 +115,6 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // ── Session ───────────────────────────────────────────────────────────────
     fun logout(onLoggedOut: () -> Unit) {
         viewModelScope.launch {
             repo.logout()
@@ -124,7 +124,6 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    // ── Profile ───────────────────────────────────────────────────────────────
     fun loadProfile() {
         viewModelScope.launch {
             val result = repo.getCurrentProfile()
@@ -133,33 +132,58 @@ class AuthViewModel : ViewModel() {
     }
 
     /**
-     * Save profile changes:
-     * - Name is updated immediately in the profiles table.
-     * - If the email changed, a confirmation link is sent to the new address.
-     *   The UI should show a "check your inbox" message in that case.
+     * Save profile changes.
+     * - Uploads a new avatar if provided.
+     * - Updates the database with the new name and avatar URL.
+     * - If email changed, sends a confirmation link and sets state to AwaitingEmailConfirmation.
      */
-    fun saveProfile(fullName: String, newEmail: String) {
+    fun saveProfile(fullName: String, newEmail: String, avatarBytes: ByteArray? = null) {
         viewModelScope.launch {
             _saveProfileState.value = AuthState.Loading
+
             val currentEmail = _profile.value?.email ?: ""
             val emailChanged = newEmail.isNotBlank() && newEmail != currentEmail
 
-            // Always save the name
-            val nameResult = repo.updateName(fullName)
-            if (nameResult.isFailure) {
+            var newAvatarUrl = _profile.value?.avatarUrl
+
+            // 1. Upload Avatar if provided
+            if (avatarBytes != null) {
+                try {
+                    val userId = client.auth.currentUserOrNull()?.id
+                        ?: throw Exception("User not logged in")
+
+                    // 👇 Unique filename per upload — guarantees a new public URL every time
+                    val timestamp = System.currentTimeMillis()
+                    val fileName = "${userId}_${timestamp}.jpg"
+                    val bucket = client.storage["avatars"]
+                    bucket.upload(fileName, avatarBytes) { upsert = false }
+                    newAvatarUrl = bucket.publicUrl(fileName)
+
+                } catch (e: Exception) {
+                    _saveProfileState.value = AuthState.Error("Failed to upload image: ${e.message}")
+                    return@launch
+                }
+            }
+
+            // 2. Update profile in database (name + avatarUrl)
+            val profileResult = repo.updateProfile(fullName, newAvatarUrl)
+            if (profileResult.isFailure) {
                 _saveProfileState.value = AuthState.Error(
-                    nameResult.exceptionOrNull()?.message ?: "Failed to save name"
+                    profileResult.exceptionOrNull()?.message ?: "Failed to save profile details"
                 )
                 return@launch
             }
 
-            // If email changed, request confirmation
+            // 3. Handle email change (if any)
             if (emailChanged) {
                 val emailResult = repo.requestEmailChange(newEmail)
                 if (emailResult.isSuccess) {
-                    _profile.value = _profile.value?.copy(fullName = fullName)
-                    // Use AwaitingEmailConfirmation to signal the UI to show
-                    // "check your inbox for the new email" message
+                    _profile.value = _profile.value?.copy(
+                        fullName  = fullName,
+                        email     = currentEmail,
+                        avatarUrl = newAvatarUrl
+                    )
+                    _profileUpdateVersion.value++
                     _saveProfileState.value = AuthState.AwaitingEmailConfirmation
                 } else {
                     _saveProfileState.value = AuthState.Error(
@@ -167,15 +191,19 @@ class AuthViewModel : ViewModel() {
                     )
                 }
             } else {
-                _profile.value = _profile.value?.copy(fullName = fullName)
-                _saveProfileState.value = AuthState.Success
+                // 4. No email change — update local profile immediately
+                _profile.value = _profile.value?.copy(
+                    fullName  = fullName,
+                    avatarUrl = newAvatarUrl
+                )
+                _profileUpdateVersion.value++
+                _saveProfileState.value = AuthState.Success  // 👈 must be LAST
             }
         }
     }
 
     fun resetSaveProfileState() { _saveProfileState.value = AuthState.Idle }
 
-    // ── Password ──────────────────────────────────────────────────────────────
     fun isEmailUser(): Boolean = repo.isEmailUser()
 
     fun changePassword(newPassword: String) {
@@ -191,10 +219,6 @@ class AuthViewModel : ViewModel() {
     fun resetChangeEmailState()    { _changeEmailState.value = AuthState.Idle }
     fun resetState()               { _authState.value = AuthState.Idle }
 
-    /**
-     * Called after a successful email confirmation deep link.
-     * Reloads the user's profile and clears the "awaiting confirmation" UI state.
-     */
     fun refreshSessionAndProfile() {
         viewModelScope.launch {
             android.util.Log.d("AuthViewModel", "refreshSessionAndProfile called")

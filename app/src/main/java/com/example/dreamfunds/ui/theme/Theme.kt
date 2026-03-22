@@ -14,47 +14,46 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DreamFundsDarkColorScheme = darkColorScheme(
-    primary = Color(0xFF82B1FF),
-    onPrimary = Color(0xFF00205C),
-    primaryContainer = Color(0xFF003082),
-    onPrimaryContainer = Color(0xFFD9E2FF),
-    secondary = Color(0xFFBBC4FF),
-    onSecondary = Color(0xFF232B60),
-    secondaryContainer = Color(0xFF3A4278),
-    onSecondaryContainer = Color(0xFFDFE0FF),
-    background = Color(0xFF1A1C22),
-    onBackground = Color(0xFFE3E2E9),
-    surface = Color(0xFF1A1C22),
-    onSurface = Color(0xFFE3E2E9),
-    surfaceVariant = Color(0xFF44464F),
-    onSurfaceVariant = Color(0xFFC5C6D0),
+    primary = Color(0xFF8BED9F),
+    onPrimary = Color(0xFF003916),
+    primaryContainer = Color(0xFF005223),
+    onPrimaryContainer = Color(0xFFA6F5B9),
+    secondary = Color(0xFFB5CCB8),
+    onSecondary = Color(0xFF223526),
+    secondaryContainer = Color(0xFF384B3C),
+    onSecondaryContainer = Color(0xFFD1E8D3),
+    background = Color(0xFF111411),
+    onBackground = Color(0xFFE1E3DF),
+    surface = Color(0xFF111411),
+    onSurface = Color(0xFFE1E3DF),
+    surfaceVariant = Color(0xFF414941),
+    onSurfaceVariant = Color(0xFFC1C9BF),
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005)
 )
 
 private val DreamFundsLightColorScheme = lightColorScheme(
-    primary = Color(0xFF1A56DB),
+    primary = Color(0xFF1B6B35), // A strong, readable Emerald/Forest Green
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFD9E2FF),
-    onPrimaryContainer = Color(0xFF00174B),
-    secondary = Color(0xFF525DAD),
+    primaryContainer = Color(0xFFA6F5B9), // Soft mint for containers
+    onPrimaryContainer = Color(0xFF00210A),
+    secondary = Color(0xFF4F6353), // Muted sage green for secondary elements
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFDFE0FF),
-    onSecondaryContainer = Color(0xFF0C1663),
-    background = Color(0xFFFBF8FF),
-    onBackground = Color(0xFF1A1C22),
-    surface = Color(0xFFFBF8FF),
-    onSurface = Color(0xFF1A1C22),
-    surfaceVariant = Color(0xFFE3E2EC),
-    onSurfaceVariant = Color(0xFF46464F),
+    secondaryContainer = Color(0xFFD1E8D3),
+    onSecondaryContainer = Color(0xFF0C1F12),
+    background = Color(0xFFFBFDF8),
+    onBackground = Color(0xFF191C19),
+    surface = Color(0xFFFBFDF8),
+    onSurface = Color(0xFF191C19),
+    surfaceVariant = Color(0xFFDDE5DB),
+    onSurfaceVariant = Color(0xFF414941),
     error = Color(0xFFBA1A1A),
     onError = Color.White
 )
-
 @Composable
 fun DreamFundsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -70,7 +69,7 @@ fun DreamFundsTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor = if (darkTheme) Color.Black.toArgb() else colorScheme.onPrimary.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

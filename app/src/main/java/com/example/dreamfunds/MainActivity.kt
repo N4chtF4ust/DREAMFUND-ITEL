@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.material3.*
@@ -19,6 +20,10 @@ import com.example.dreamfunds.viewmodel.AuthViewModel
 import com.example.dreamfunds.viewmodel.SessionState
 import io.github.jan.supabase.auth.handleDeeplinks
 import kotlinx.coroutines.launch
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.dreamfunds.ui.theme.DreamFundsTheme
+
+
 
 sealed class Screen(val route: String) {
     object Splash    : Screen("splash")
@@ -34,7 +39,9 @@ class MainActivity : ComponentActivity() {
     private val authViewModel: AuthViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
+
         Log.d("DeepLink", "onCreate called")
         handleSupabaseDeepLink(intent)
         setContent {
@@ -119,9 +126,11 @@ fun DreamFundsApp(authViewModel: AuthViewModel) {
         drawerState     = drawerState,
         gesturesEnabled = !isAuthScreen,
         drawerContent   = {
+
             AppDrawer(
                 profile            = profile,
                 currentDestination = currentDestination,
+                authViewModel      = authViewModel,
                 onNavigate         = { screen ->
                     navController.navigate(screen.route) {
                         popUpTo(Screen.Dashboard.route) { saveState = true }

@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/dreamfunds/ui/screens/LoginScreen.kt
 package com.example.dreamfunds.ui.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -27,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dreamfunds.R
 import com.example.dreamfunds.SupabaseClientProvider
+import com.example.dreamfunds.ui.theme.DreamFundsTheme // <-- IMPORTED YOUR THEME HERE
 import com.example.dreamfunds.viewmodel.AuthState
 import com.example.dreamfunds.viewmodel.AuthViewModel
 import io.github.jan.supabase.compose.auth.composeAuth
@@ -270,27 +270,6 @@ private fun OrDivider() {
     }
 }
 
-// ─────────────────────────────────────────────────────────────
-// Green Material theme used only by previews
-// ─────────────────────────────────────────────────────────────
-private val GreenColorScheme = lightColorScheme(
-    primary          = Color(0xFF2E7D32),
-    onPrimary        = Color.White,
-    primaryContainer = Color(0xFFA5D6A7),
-    secondary        = Color(0xFF388E3C),
-    onSecondary      = Color.White,
-    tertiary         = Color(0xFF81C784),
-    background       = Color(0xFFF1F8E9),
-    surface          = Color(0xFFF1F8E9),
-    error            = Color(0xFFB00020),
-    onBackground     = Color(0xFF1B1B1B),
-    onSurface        = Color(0xFF1B1B1B),
-)
-
-@Composable
-private fun DreamFundsPreviewTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = GreenColorScheme, content = content)
-}
 
 // ─────────────────────────────────────────────────────────────
 // Preview — never touches SupabaseClientProvider or AuthViewModel
@@ -298,7 +277,7 @@ private fun DreamFundsPreviewTheme(content: @Composable () -> Unit) {
 @Preview(showBackground = true, name = "Login — Idle")
 @Composable
 private fun LoginScreenPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         LoginScreenStateless(
             email               = "",
             password            = "",
@@ -318,7 +297,7 @@ private fun LoginScreenPreview() {
 @Preview(showBackground = true, name = "Login — Error")
 @Composable
 private fun LoginScreenErrorPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         LoginScreenStateless(
             email               = "user@example.com",
             password            = "wrong",
@@ -338,7 +317,7 @@ private fun LoginScreenErrorPreview() {
 @Preview(showBackground = true, name = "Login — Loading")
 @Composable
 private fun LoginScreenLoadingPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         LoginScreenStateless(
             email               = "user@example.com",
             password            = "pass123",

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- app/src/main/res/values/themes.xml -->
 <resources>
-    <style name="Theme.DreamFunds" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DreamFunds" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
 </resources>

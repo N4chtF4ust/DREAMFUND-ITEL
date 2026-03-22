@@ -1,4 +1,3 @@
-// ui/screens/DashboardScreen.kt
 package com.example.dreamfunds.ui.screens
 
 import androidx.compose.foundation.background
@@ -31,6 +30,7 @@ import com.example.dreamfunds.ui.components.buttons.QuickActionButtons
 import com.example.dreamfunds.ui.components.common.SectionHeader
 import com.example.dreamfunds.ui.components.list.TransactionItem
 import com.example.dreamfunds.ui.components.list.TransactionPaginationFooter
+import com.example.dreamfunds.ui.theme.DreamFundsTheme // <-- IMPORTED YOUR THEME HERE
 import com.example.dreamfunds.viewmodel.DashboardUiState
 import com.example.dreamfunds.viewmodel.DashboardViewModel
 
@@ -54,7 +54,7 @@ fun DashboardScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Dream Funds",
+                        Text("Dashboard",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold)
                         Text("Welcome back!", style = MaterialTheme.typography.bodySmall)
@@ -273,30 +273,6 @@ fun DashboardScreen(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Green preview theme — consistent with Login / Register / Profile
-// ─────────────────────────────────────────────────────────────────────────────
-private val GreenColorScheme = lightColorScheme(
-    primary          = Color(0xFF2E7D32),
-    onPrimary        = Color.White,
-    primaryContainer = Color(0xFFA5D6A7),
-    onPrimaryContainer = Color(0xFF002106),
-    secondary        = Color(0xFF388E3C),
-    onSecondary      = Color.White,
-    tertiary         = Color(0xFF81C784),
-    background       = Color(0xFFF1F8E9),
-    surface          = Color(0xFFF1F8E9),
-    surfaceVariant   = Color(0xFFDCEDC8),
-    error            = Color(0xFFB00020),
-    onBackground     = Color(0xFF1B1B1B),
-    onSurface        = Color(0xFF1B1B1B),
-)
-
-@Composable
-private fun DreamFundsPreviewTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = GreenColorScheme, content = content)
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Fake data for previews
 // ─────────────────────────────────────────────────────────────────────────────
 private val fakeGoals = listOf(
@@ -380,7 +356,7 @@ private fun DashboardPreviewShell(uiState: DashboardUiState) {
             TopAppBar(
                 title = {
                     Column {
-                        Text("Dream Funds",
+                        Text("Dashboard",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold)
                         Text("Welcome back!", style = MaterialTheme.typography.bodySmall)
@@ -520,13 +496,13 @@ private fun DashboardPreviewShell(uiState: DashboardUiState) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Previews
+// Previews (Now using your actual DreamFundsTheme)
 // ─────────────────────────────────────────────────────────────────────────────
 
 @Preview(showBackground = true, name = "Dashboard — Empty State")
 @Composable
 private fun DashboardEmptyPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         DashboardPreviewShell(uiState = DashboardUiState(isLoading = false))
     }
 }
@@ -534,7 +510,7 @@ private fun DashboardEmptyPreview() {
 @Preview(showBackground = true, name = "Dashboard — With Data")
 @Composable
 private fun DashboardWithDataPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         DashboardPreviewShell(
             uiState = DashboardUiState(
                 isLoading           = false,
@@ -555,7 +531,7 @@ private fun DashboardWithDataPreview() {
 @Preview(showBackground = true, name = "Dashboard — Loading")
 @Composable
 private fun DashboardLoadingPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         DashboardPreviewShell(uiState = DashboardUiState(isLoading = true))
     }
 }
@@ -563,7 +539,7 @@ private fun DashboardLoadingPreview() {
 @Preview(showBackground = true, name = "Dashboard — Error")
 @Composable
 private fun DashboardErrorPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         DashboardPreviewShell(
             uiState = DashboardUiState(
                 isLoading    = false,
@@ -579,7 +555,7 @@ private fun DashboardErrorPreview() {
 @Preview(showBackground = true, name = "Dashboard — Goals Only")
 @Composable
 private fun DashboardGoalsOnlyPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         DashboardPreviewShell(
             uiState = DashboardUiState(
                 isLoading    = false,

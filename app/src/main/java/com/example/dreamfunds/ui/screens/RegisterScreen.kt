@@ -1,4 +1,3 @@
-// app/src/main/java/com/example/dreamfunds/ui/screens/RegisterScreen.kt
 package com.example.dreamfunds.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -19,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.dreamfunds.ui.theme.DreamFundsTheme // <-- IMPORTED YOUR THEME HERE
 import com.example.dreamfunds.viewmodel.AuthState
 import com.example.dreamfunds.viewmodel.AuthViewModel
 
@@ -281,28 +281,6 @@ private fun EmailConfirmationScreen(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Green preview theme
-// ─────────────────────────────────────────────────────────────
-private val GreenColorScheme = lightColorScheme(
-    primary          = Color(0xFF2E7D32),
-    onPrimary        = Color.White,
-    primaryContainer = Color(0xFFA5D6A7),
-    secondary        = Color(0xFF388E3C),
-    onSecondary      = Color.White,
-    tertiary         = Color(0xFF81C784),
-    background       = Color(0xFFF1F8E9),
-    surface          = Color(0xFFF1F8E9),
-    error            = Color(0xFFB00020),
-    onBackground     = Color(0xFF1B1B1B),
-    onSurface        = Color(0xFF1B1B1B),
-)
-
-@Composable
-private fun DreamFundsPreviewTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = GreenColorScheme, content = content)
-}
-
-// ─────────────────────────────────────────────────────────────
 // Stateless UI — previews only
 // ─────────────────────────────────────────────────────────────
 @Composable
@@ -438,10 +416,13 @@ private fun RegisterScreenStateless(
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Previews (Now using your central DreamFundsTheme)
+// ─────────────────────────────────────────────────────────────
 @Preview(showBackground = true, name = "Register — Idle")
 @Composable
 private fun RegisterIdlePreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         RegisterScreenStateless("", "", "", "", false, false, false, null,
             {}, {}, {}, {}, {}, {}, {}, {})
     }
@@ -450,7 +431,7 @@ private fun RegisterIdlePreview() {
 @Preview(showBackground = true, name = "Register — All Valid")
 @Composable
 private fun RegisterValidPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         RegisterScreenStateless("Juan", "juan@example.com", "secret123", "secret123",
             false, false, false, null, {}, {}, {}, {}, {}, {}, {}, {})
     }
@@ -459,7 +440,7 @@ private fun RegisterValidPreview() {
 @Preview(showBackground = true, name = "Register — Mismatch")
 @Composable
 private fun RegisterMismatchPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         RegisterScreenStateless("Juan", "juan@example.com", "secret123", "different",
             false, false, false, null, {}, {}, {}, {}, {}, {}, {}, {})
     }
@@ -468,7 +449,7 @@ private fun RegisterMismatchPreview() {
 @Preview(showBackground = true, name = "Register — Awaiting Confirmation")
 @Composable
 private fun RegisterAwaitingPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         EmailConfirmationScreen(
             email         = "juan@example.com",
             onBackToLogin = {}
@@ -479,7 +460,7 @@ private fun RegisterAwaitingPreview() {
 @Preview(showBackground = true, name = "Register — API Error")
 @Composable
 private fun RegisterErrorPreview() {
-    DreamFundsPreviewTheme {
+    DreamFundsTheme {
         RegisterScreenStateless("Juan", "juan@example.com", "secret123", "secret123",
             false, false, false, "An account with this email already exists.",
             {}, {}, {}, {}, {}, {}, {}, {})
