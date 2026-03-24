@@ -18,9 +18,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.dreamfunds.ui.theme.DreamFundsTheme // <-- IMPORTED YOUR THEME HERE
+import com.example.dreamfunds.ui.theme.DreamFundsTheme
 import com.example.dreamfunds.viewmodel.AuthState
 import com.example.dreamfunds.viewmodel.AuthViewModel
+import com.example.dreamfunds.utils.rememberDebouncedAction
 
 @Composable
 fun RegisterScreen(
@@ -37,9 +38,14 @@ fun RegisterScreen(
 
     val authState by authViewModel.authState.collectAsState()
 
+    val onBackToLoginDebounced = rememberDebouncedAction(delayMs = 500L, block = onBackToLogin)
+
     // ── If somehow Success fires (e.g. future flow change) still navigate
+    var navigated by remember { mutableStateOf(false) }
+
     LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
+        if (authState is AuthState.Success && !navigated) {
+            navigated = true
             authViewModel.resetState()
             onRegisterSuccess()
         }
@@ -65,10 +71,12 @@ fun RegisterScreen(
             && password == confirmPassword
             && authState !is AuthState.Loading
 
+    val scrollState = rememberScrollState()
+
     Column(
         modifier            = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
             .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -205,7 +213,7 @@ fun RegisterScreen(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Already Have an Account?")
-            TextButton(onClick = onBackToLogin) {
+            TextButton(onClick = onBackToLoginDebounced) {
                 Text("LOGIN", fontWeight = FontWeight.Bold)
             }
         }

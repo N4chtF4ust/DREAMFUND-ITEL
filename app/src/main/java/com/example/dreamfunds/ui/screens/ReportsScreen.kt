@@ -23,7 +23,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.dreamfunds.ui.theme.DreamFundsTheme // <-- IMPORTED YOUR THEME HERE
+import com.example.dreamfunds.ui.components.common.ReportsSkeleton
+import com.example.dreamfunds.ui.theme.DreamFundsTheme
 import com.example.dreamfunds.viewmodel.ReportItem
 import com.example.dreamfunds.viewmodel.ReportsViewModel
 
@@ -31,9 +32,15 @@ import com.example.dreamfunds.viewmodel.ReportsViewModel
 @Composable
 fun ReportsScreen(
     onOpenDrawer: () -> Unit,
-    viewModel: ReportsViewModel = viewModel()
+    viewModel: ReportsViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    val showSkeleton = uiState.isLoading ||
+            (uiState.filteredExpenses.isEmpty() &&
+                    uiState.totalIncome == 0.0 &&
+                    uiState.totalSpent  == 0.0 &&
+                    uiState.reportItems.isEmpty())
 
     Scaffold(
         topBar = {
@@ -48,15 +55,13 @@ fun ReportsScreen(
                     IconButton(onClick = { viewModel.loadReports() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
-        if (uiState.isLoading) {
-            Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+
+        if (showSkeleton) {
+            ReportsSkeleton(modifier = Modifier.padding(padding))
             return@Scaffold
         }
 
@@ -66,21 +71,21 @@ fun ReportsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
 
             // ── Month Selector ──────────────────────────────────
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(16.dp),
-                color    = MaterialTheme.colorScheme.surfaceVariant
+                color    = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Row(
                     modifier              = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
+                    verticalAlignment     = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = { viewModel.goToPreviousMonth() }) {
                         Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous month")
@@ -88,11 +93,11 @@ fun ReportsScreen(
                     Text(
                         uiState.displayMonth,
                         fontWeight = FontWeight.Bold,
-                        style      = MaterialTheme.typography.titleMedium
+                        style      = MaterialTheme.typography.titleMedium,
                     )
                     IconButton(
-                        onClick  = { viewModel.goToNextMonth() },
-                        enabled  = uiState.monthOffset < 0
+                        onClick = { viewModel.goToNextMonth() },
+                        enabled = uiState.monthOffset < 0,
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -100,7 +105,7 @@ fun ReportsScreen(
                             tint = if (uiState.monthOffset < 0)
                                 LocalContentColor.current
                             else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                         )
                     }
                 }
@@ -109,7 +114,7 @@ fun ReportsScreen(
             // ── Income vs Expenses mini cards ───────────────────
             Row(
                 modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SummaryMiniCard(
                     modifier       = Modifier.weight(1f),
@@ -117,7 +122,7 @@ fun ReportsScreen(
                     amount         = uiState.totalIncome,
                     icon           = Icons.Default.ArrowDownward,
                     containerColor = Color(0xFF4CAF50).copy(alpha = 0.12f),
-                    contentColor   = Color(0xFF2E7D32)
+                    contentColor   = Color(0xFF2E7D32),
                 )
                 SummaryMiniCard(
                     modifier       = Modifier.weight(1f),
@@ -125,7 +130,7 @@ fun ReportsScreen(
                     amount         = uiState.totalSpent,
                     icon           = Icons.Default.ArrowUpward,
                     containerColor = Color(0xFFF44336).copy(alpha = 0.12f),
-                    contentColor   = Color(0xFFC62828)
+                    contentColor   = Color(0xFFC62828),
                 )
             }
 
@@ -135,31 +140,32 @@ fun ReportsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape    = RoundedCornerShape(16.dp),
                     colors   = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    ),
                 ) {
                     Column(
                         modifier            = Modifier
                             .fillMaxWidth()
                             .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Icon(
                             Icons.Default.BarChart, null,
-                            modifier = Modifier.size(48.dp), tint = Color.Gray
+                            modifier = Modifier.size(48.dp),
+                            tint     = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
                             "No transactions in ${uiState.displayMonth}",
                             style     = MaterialTheme.typography.bodyMedium,
-                            color     = Color.Gray,
-                            textAlign = TextAlign.Center
+                            color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
                         )
                         Text(
                             "Use ← to navigate to a month with data",
                             style     = MaterialTheme.typography.bodySmall,
-                            color     = Color.Gray.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center
+                            color     = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
                         )
                     }
                 }
@@ -170,19 +176,19 @@ fun ReportsScreen(
                     Text(
                         "Expense Breakdown",
                         style      = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
                     )
                     Card(
                         modifier  = Modifier.fillMaxWidth(),
                         shape     = RoundedCornerShape(20.dp),
                         colors    = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface
+                            containerColor = MaterialTheme.colorScheme.surface,
                         ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     ) {
                         Column(
                             modifier            = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
                             uiState.reportItems
                                 .filter { it.rawAmount > 0.0 }
@@ -195,14 +201,18 @@ fun ReportsScreen(
                                 zeroes.forEach { item ->
                                     Row(
                                         modifier              = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                     ) {
-                                        Text(item.name,
+                                        Text(
+                                            item.name,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Gray)
-                                        Text("₱ 0.00",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Text(
+                                            "₱ 0.00",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Gray)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
                                     }
                                 }
                             }
@@ -220,19 +230,19 @@ fun ReportsScreen(
                         containerColor = if (isPositive)
                             Color(0xFF4CAF50).copy(alpha = 0.12f)
                         else
-                            Color(0xFFF44336).copy(alpha = 0.12f)
-                    )
+                            Color(0xFFF44336).copy(alpha = 0.12f),
+                    ),
                 ) {
                     Row(
                         modifier          = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             if (isPositive) Icons.Default.TrendingUp
                             else Icons.Default.TrendingDown,
                             null,
                             tint     = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828),
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(28.dp),
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
@@ -241,12 +251,12 @@ fun ReportsScreen(
                                 else "Expenses exceeded income this month",
                                 style      = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color      = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828)
+                                color      = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828),
                             )
                             Text(
                                 "Net: ${if (isPositive) "+" else ""}₱${String.format("%,.2f", net)}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828)
+                                color = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828),
                             )
                         }
                     }
@@ -258,19 +268,23 @@ fun ReportsScreen(
     }
 }
 
+// ─────────────────────────────────────────────────────────────
+// Shared sub-composables
+// ─────────────────────────────────────────────────────────────
+
 @Composable
 private fun SummaryMiniCard(
-    modifier       : Modifier = Modifier,
+    modifier       : Modifier    = Modifier,
     label          : String,
     amount         : Double,
     icon           : ImageVector,
     containerColor : Color,
-    contentColor   : Color
+    contentColor   : Color,
 ) {
     Card(
         modifier = modifier,
         shape    = RoundedCornerShape(16.dp),
-        colors   = CardDefaults.cardColors(containerColor = containerColor)
+        colors   = CardDefaults.cardColors(containerColor = containerColor),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -283,7 +297,7 @@ private fun SummaryMiniCard(
                 "₱ ${String.format("%,.2f", amount)}",
                 style      = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color      = contentColor
+                color      = contentColor,
             )
         }
     }
@@ -295,7 +309,7 @@ fun ReportProgressItem(item: ReportItem) {
         Row(
             modifier              = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment     = Alignment.CenterVertically
+            verticalAlignment     = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
@@ -311,67 +325,68 @@ fun ReportProgressItem(item: ReportItem) {
                 Text(
                     "${(item.percentage * 100).toInt()}%",
                     style = MaterialTheme.typography.labelSmall,
-                    color = item.color
+                    color = item.color,
                 )
             }
         }
         LinearProgressIndicator(
-            progress    = { item.percentage },
-            modifier    = Modifier
+            progress   = { item.percentage },
+            modifier   = Modifier
                 .fillMaxWidth()
                 .height(10.dp)
                 .clip(CircleShape),
-            color       = item.color,
-            trackColor  = item.color.copy(alpha = 0.1f)
+            color      = item.color,
+            trackColor = item.color.copy(alpha = 0.1f),
         )
     }
 }
 
 // ─────────────────────────────────────────────────────────────
-// Fake data helpers for previews
+// Fake data for previews
 // ─────────────────────────────────────────────────────────────
+
 private val fakeReportItems = listOf(
     ReportItem(
         name       = "Food & Dining",
         amount     = "₱ 3,200.00",
         rawAmount  = 3200.0,
         percentage = 0.52f,
-        color      = Color(0xFFF44336)
+        color      = Color(0xFFF44336),
     ),
     ReportItem(
         name       = "Transportation",
         amount     = "₱ 1,500.00",
         rawAmount  = 1500.0,
         percentage = 0.24f,
-        color      = Color(0xFF2196F3)
+        color      = Color(0xFF2196F3),
     ),
     ReportItem(
         name       = "Utilities",
         amount     = "₱ 850.00",
         rawAmount  = 850.0,
         percentage = 0.14f,
-        color      = Color(0xFFFF9800)
+        color      = Color(0xFFFF9800),
     ),
     ReportItem(
         name       = "Others",
         amount     = "₱ 610.00",
         rawAmount  = 610.0,
         percentage = 0.10f,
-        color      = Color(0xFF9C27B0)
+        color      = Color(0xFF9C27B0),
     ),
     ReportItem(
         name       = "Entertainment",
         amount     = "₱ 0.00",
         rawAmount  = 0.0,
         percentage = 0.0f,
-        color      = Color(0xFF00BCD4)
+        color      = Color(0xFF00BCD4),
     ),
 )
 
 // ─────────────────────────────────────────────────────────────
-// Stateless UI — used exclusively by previews.
-// ReportsScreen above is NOT changed.
+// Preview shell
 // ─────────────────────────────────────────────────────────────
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReportsScreenStateless(
@@ -385,8 +400,14 @@ private fun ReportsScreenStateless(
     onPreviousMonth  : () -> Unit,
     onNextMonth      : () -> Unit,
     onOpenDrawer     : () -> Unit,
-    onRefresh        : () -> Unit
+    onRefresh        : () -> Unit,
 ) {
+    val showSkeleton = isLoading ||
+            (filteredExpenses.isEmpty() &&
+                    totalIncome == 0.0 &&
+                    totalSpent  == 0.0 &&
+                    reportItems.isEmpty())
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -400,15 +421,13 @@ private fun ReportsScreenStateless(
                     IconButton(onClick = onRefresh) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
-        if (isLoading) {
-            Box(
-                Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+
+        if (showSkeleton) {
+            ReportsSkeleton(modifier = Modifier.padding(padding))
             return@Scaffold
         }
 
@@ -418,20 +437,19 @@ private fun ReportsScreenStateless(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // ── Month Selector ──────────────────────────────────
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape    = RoundedCornerShape(16.dp),
-                color    = MaterialTheme.colorScheme.surfaceVariant
+                color    = MaterialTheme.colorScheme.surfaceVariant,
             ) {
                 Row(
                     modifier              = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
+                    verticalAlignment     = Alignment.CenterVertically,
                 ) {
                     IconButton(onClick = onPreviousMonth) {
                         Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous month")
@@ -439,7 +457,7 @@ private fun ReportsScreenStateless(
                     Text(
                         displayMonth,
                         fontWeight = FontWeight.Bold,
-                        style      = MaterialTheme.typography.titleMedium
+                        style      = MaterialTheme.typography.titleMedium,
                     )
                     IconButton(onClick = onNextMonth, enabled = monthOffset < 0) {
                         Icon(
@@ -448,16 +466,15 @@ private fun ReportsScreenStateless(
                             tint = if (monthOffset < 0)
                                 LocalContentColor.current
                             else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
                         )
                     }
                 }
             }
 
-            // ── Income vs Expenses mini cards ───────────────────
             Row(
                 modifier              = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SummaryMiniCard(
                     modifier       = Modifier.weight(1f),
@@ -465,7 +482,7 @@ private fun ReportsScreenStateless(
                     amount         = totalIncome,
                     icon           = Icons.Default.ArrowDownward,
                     containerColor = Color(0xFF4CAF50).copy(alpha = 0.12f),
-                    contentColor   = Color(0xFF2E7D32)
+                    contentColor   = Color(0xFF2E7D32),
                 )
                 SummaryMiniCard(
                     modifier       = Modifier.weight(1f),
@@ -473,51 +490,60 @@ private fun ReportsScreenStateless(
                     amount         = totalSpent,
                     icon           = Icons.Default.ArrowUpward,
                     containerColor = Color(0xFFF44336).copy(alpha = 0.12f),
-                    contentColor   = Color(0xFFC62828)
+                    contentColor   = Color(0xFFC62828),
                 )
             }
 
-            // ── No data state ───────────────────────────────────
             if (filteredExpenses.isEmpty() && totalIncome == 0.0) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape    = RoundedCornerShape(16.dp),
                     colors   = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    ),
                 ) {
                     Column(
                         modifier            = Modifier.fillMaxWidth().padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(Icons.Default.BarChart, null,
-                            modifier = Modifier.size(48.dp), tint = Color.Gray)
-                        Text("No transactions in $displayMonth",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray, textAlign = TextAlign.Center)
-                        Text("Use ← to navigate to a month with data",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center)
+                        Icon(
+                            Icons.Default.BarChart, null,
+                            modifier = Modifier.size(48.dp),
+                            tint     = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            "No transactions in $displayMonth",
+                            style     = MaterialTheme.typography.bodyMedium,
+                            color     = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                        Text(
+                            "Use ← to navigate to a month with data",
+                            style     = MaterialTheme.typography.bodySmall,
+                            color     = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center,
+                        )
                     }
                 }
             } else {
-                // ── Expense Breakdown ───────────────────────────
                 if (filteredExpenses.isNotEmpty()) {
-                    Text("Expense Breakdown",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold)
+                    Text(
+                        "Expense Breakdown",
+                        style      = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
                     Card(
                         modifier  = Modifier.fillMaxWidth(),
                         shape     = RoundedCornerShape(20.dp),
                         colors    = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            containerColor = MaterialTheme.colorScheme.surface,
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     ) {
                         Column(
                             modifier            = Modifier.padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
                         ) {
                             reportItems
                                 .filter { it.rawAmount > 0.0 }
@@ -530,14 +556,18 @@ private fun ReportsScreenStateless(
                                 zeroes.forEach { item ->
                                     Row(
                                         modifier              = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                     ) {
-                                        Text(item.name,
+                                        Text(
+                                            item.name,
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Gray)
-                                        Text("₱ 0.00",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Text(
+                                            "₱ 0.00",
                                             style = MaterialTheme.typography.bodySmall,
-                                            color = Color.Gray)
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
                                     }
                                 }
                             }
@@ -545,7 +575,6 @@ private fun ReportsScreenStateless(
                     }
                 }
 
-                // ── Net insight card ────────────────────────────
                 val net        = totalIncome - totalSpent
                 val isPositive = net >= 0.0
                 Card(
@@ -555,19 +584,19 @@ private fun ReportsScreenStateless(
                         containerColor = if (isPositive)
                             Color(0xFF4CAF50).copy(alpha = 0.12f)
                         else
-                            Color(0xFFF44336).copy(alpha = 0.12f)
-                    )
+                            Color(0xFFF44336).copy(alpha = 0.12f),
+                    ),
                 ) {
                     Row(
                         modifier          = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             if (isPositive) Icons.Default.TrendingUp
                             else Icons.Default.TrendingDown,
                             null,
                             tint     = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828),
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(28.dp),
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
@@ -576,12 +605,12 @@ private fun ReportsScreenStateless(
                                 else "Expenses exceeded income this month",
                                 style      = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color      = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828)
+                                color      = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828),
                             )
                             Text(
                                 "Net: ${if (isPositive) "+" else ""}₱${String.format("%,.2f", net)}",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828)
+                                color = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828),
                             )
                         }
                     }
@@ -594,8 +623,49 @@ private fun ReportsScreenStateless(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Previews (Now using your central DreamFundsTheme)
+// Previews
 // ─────────────────────────────────────────────────────────────
+
+@Preview(showBackground = true, name = "Reports — Skeleton (Loading)")
+@Composable
+private fun ReportsLoadingPreview() {
+    DreamFundsTheme {
+        ReportsScreenStateless(
+            displayMonth     = "March 2026",
+            monthOffset      = 0,
+            totalIncome      = 0.0,
+            totalSpent       = 0.0,
+            reportItems      = emptyList(),
+            filteredExpenses = emptyList(),
+            isLoading        = true,
+            onPreviousMonth  = {},
+            onNextMonth      = {},
+            onOpenDrawer     = {},
+            onRefresh        = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Reports — Skeleton (Empty initial)")
+@Composable
+private fun ReportsSkeletonEmptyPreview() {
+    DreamFundsTheme {
+        ReportsScreenStateless(
+            displayMonth     = "March 2026",
+            monthOffset      = 0,
+            totalIncome      = 0.0,
+            totalSpent       = 0.0,
+            reportItems      = emptyList(),
+            filteredExpenses = emptyList(),
+            isLoading        = false,
+            onPreviousMonth  = {},
+            onNextMonth      = {},
+            onOpenDrawer     = {},
+            onRefresh        = {},
+        )
+    }
+}
+
 @Preview(showBackground = true, name = "Reports — With Data")
 @Composable
 private fun ReportsWithDataPreview() {
@@ -611,7 +681,7 @@ private fun ReportsWithDataPreview() {
             onPreviousMonth  = {},
             onNextMonth      = {},
             onOpenDrawer     = {},
-            onRefresh        = {}
+            onRefresh        = {},
         )
     }
 }
@@ -631,7 +701,7 @@ private fun ReportsEmptyPreview() {
             onPreviousMonth  = {},
             onNextMonth      = {},
             onOpenDrawer     = {},
-            onRefresh        = {}
+            onRefresh        = {},
         )
     }
 }
@@ -651,27 +721,7 @@ private fun ReportsOverBudgetPreview() {
             onPreviousMonth  = {},
             onNextMonth      = {},
             onOpenDrawer     = {},
-            onRefresh        = {}
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Reports — Loading")
-@Composable
-private fun ReportsLoadingPreview() {
-    DreamFundsTheme {
-        ReportsScreenStateless(
-            displayMonth     = "March 2026",
-            monthOffset      = 0,
-            totalIncome      = 0.0,
-            totalSpent       = 0.0,
-            reportItems      = emptyList(),
-            filteredExpenses = emptyList(),
-            isLoading        = true,
-            onPreviousMonth  = {},
-            onNextMonth      = {},
-            onOpenDrawer     = {},
-            onRefresh        = {}
+            onRefresh        = {},
         )
     }
 }

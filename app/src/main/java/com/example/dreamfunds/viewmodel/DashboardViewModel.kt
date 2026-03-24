@@ -20,6 +20,7 @@ data class DashboardUiState(
     val allGoals: List<SavingsGoal> = emptyList(),
     val visibleGoals: List<SavingsGoal> = emptyList(),
     val isLoading: Boolean = false,
+    val isInitialLoadDone: Boolean = false,  // ADD THIS
     val error: String? = null,
     val totalBalance: Double = 0.0,
     val totalIncome: Double = 0.0,
@@ -50,9 +51,11 @@ class DashboardViewModel : ViewModel() {
         loadAll()
     }
 
-    fun loadAll() {
+    fun loadAll(showSkeleton: Boolean = false) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            _uiState.value = _uiState.value.copy(   isLoading         = true,
+                isInitialLoadDone = if (showSkeleton) false else _uiState.value.isInitialLoadDone,
+                error             = null)
             val tResult      = transactionRepo.getTransactions()
             val gResult      = goalRepo.getGoals()
             val transactions = tResult.getOrDefault(emptyList())
@@ -69,6 +72,7 @@ class DashboardViewModel : ViewModel() {
                 allGoals             = goals,
                 visibleGoals         = goals.take(goalPage * goalPageSize),
                 isLoading            = false,
+                isInitialLoadDone    = true,
                 error                = tResult.exceptionOrNull()?.message,
                 totalIncome          = totalIncome,
                 totalExpense         = totalExpense,

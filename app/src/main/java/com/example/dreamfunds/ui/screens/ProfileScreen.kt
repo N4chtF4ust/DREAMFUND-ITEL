@@ -46,24 +46,26 @@ import java.io.ByteArrayOutputStream
 @Composable
 fun ProfileScreen(
     authViewModel: AuthViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
-    val profile by authViewModel.profile.collectAsState()
-    val saveState by authViewModel.saveProfileState.collectAsState()
+    val profile             by authViewModel.profile.collectAsState()
+    val saveState           by authViewModel.saveProfileState.collectAsState()
     val changePasswordState by authViewModel.changePasswordState.collectAsState()
 
-    var name by remember(profile) { mutableStateOf(profile?.fullName ?: "") }
+    var name  by remember(profile) { mutableStateOf(profile?.fullName ?: "") }
     var email by remember(profile) { mutableStateOf(profile?.email ?: "") }
 
     var showChangePasswordDialog by remember { mutableStateOf(false) }
-    var showSaveSnackbar by remember { mutableStateOf(false) }
-    var showPasswordSnackbar by remember { mutableStateOf(false) }
+    var showSaveSnackbar         by remember { mutableStateOf(false) }
+    var showPasswordSnackbar     by remember { mutableStateOf(false) }
+
+    // ── Back button debounce ──────────────────────────────────────
+    var isNavigatingBack by remember { mutableStateOf(false) }
 
     val isEmailUser = remember { authViewModel.isEmailUser() }
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val scope       = rememberCoroutineScope()
+    val context     = LocalContext.current
 
-    // ── Image Picker State ────────────────────────────────────────
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
@@ -79,7 +81,7 @@ fun ProfileScreen(
             is AuthState.Success -> {
                 showSaveSnackbar = true
                 selectedImageUri = null
-                authViewModel.loadProfile() // reload so drawer gets new avatarUrl
+                authViewModel.loadProfile()
             }
             else -> Unit
         }
@@ -115,13 +117,21 @@ fun ProfileScreen(
             TopAppBar(
                 title = { Text("My Profile", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = {
+                            if (!isNavigatingBack) {
+                                isNavigatingBack = true
+                                onBack()
+                            }
+                        },
+                        enabled = !isNavigatingBack,
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                }
+                },
             )
         },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -129,8 +139,9 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+
             // ── Avatar Section ────────────────────────────────────
             Box(
                 modifier = Modifier
@@ -140,16 +151,15 @@ fun ProfileScreen(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     },
-                contentAlignment = Alignment.Center
+                contentAlignment = Alignment.Center,
             ) {
                 Box(
                     modifier = Modifier
                         .size(100.dp)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
-                    // No cache busting needed — unique filename per upload = new URL every time
                     val currentImageToDisplay = selectedImageUri ?: profile?.avatarUrl
 
                     if (currentImageToDisplay != null &&
@@ -161,8 +171,8 @@ fun ProfileScreen(
                                 .crossfade(true)
                                 .build(),
                             contentDescription = "Profile Picture",
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            contentScale       = ContentScale.Crop,
+                            modifier           = Modifier.fillMaxSize(),
                         )
                     } else {
                         val initials = profile?.fullName
@@ -174,44 +184,43 @@ fun ProfileScreen(
                             ?.ifBlank { "?" } ?: "?"
 
                         Text(
-                            text = initials,
-                            style = MaterialTheme.typography.headlineMedium,
+                            text       = initials,
+                            style      = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color      = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
 
-                // Camera Icon Overlay
                 Surface(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .offset(x = (-4).dp, y = (-4).dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary,
-                    tonalElevation = 2.dp
+                    shape          = CircleShape,
+                    color          = MaterialTheme.colorScheme.primary,
+                    tonalElevation = 2.dp,
                 ) {
                     Icon(
                         Icons.Default.CameraAlt,
                         contentDescription = "Edit Photo",
-                        tint = MaterialTheme.colorScheme.onPrimary,
+                        tint     = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
                             .padding(6.dp)
-                            .size(18.dp)
+                            .size(18.dp),
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = profile?.fullName?.takeIf { it.isNotBlank() } ?: "DreamFunds User",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                text       = profile?.fullName?.takeIf { it.isNotBlank() } ?: "DreamFunds User",
+                style      = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
             )
             Text(
-                text = profile?.email ?: "",
+                text  = profile?.email ?: "",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -222,30 +231,30 @@ fun ProfileScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
+                    shape  = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9)),
                 ) {
                     Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier              = Modifier.padding(14.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
                         Icon(
                             Icons.Default.MarkEmailUnread, null,
-                            tint = Color(0xFF2E7D32),
-                            modifier = Modifier.size(22.dp)
+                            tint     = Color(0xFF2E7D32),
+                            modifier = Modifier.size(22.dp),
                         )
                         Column {
                             Text(
                                 "Confirm your new email",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style      = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = Color(0xFF2E7D32)
+                                color      = Color(0xFF2E7D32),
                             )
                             Text(
                                 "A confirmation link was sent to your new address.",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF388E3C)
+                                color = Color(0xFF388E3C),
                             )
                         }
                     }
@@ -254,22 +263,22 @@ fun ProfileScreen(
 
             // ── Fields ────────────────────────────────────────────
             ProfileField(
-                label = "Full Name",
-                value = name,
+                label         = "Full Name",
+                value         = name,
                 onValueChange = { name = it },
-                icon = Icons.Default.Badge
+                icon          = Icons.Default.Badge,
             )
 
             ProfileField(
-                label = "Email Address",
-                value = email,
-                onValueChange = { email = it },
-                icon = Icons.Default.Email,
-                trailingIcon = if (saveState is AuthState.AwaitingEmailConfirmation)
+                label            = "Email Address",
+                value            = email,
+                onValueChange    = { email = it },
+                icon             = Icons.Default.Email,
+                trailingIcon     = if (saveState is AuthState.AwaitingEmailConfirmation)
                     Icons.Default.HourglassEmpty else null,
                 trailingIconTint = Color(0xFF388E3C),
-                supportingText = if (saveState is AuthState.AwaitingEmailConfirmation)
-                    "Pending confirmation" else null
+                supportingText   = if (saveState is AuthState.AwaitingEmailConfirmation)
+                    "Pending confirmation" else null,
             )
 
             if (saveState is AuthState.Error) {
@@ -277,7 +286,7 @@ fun ProfileScreen(
                 Text(
                     (saveState as AuthState.Error).message,
                     color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
 
@@ -286,9 +295,9 @@ fun ProfileScreen(
             // ── Change Password ───────────────────────────────────
             if (isEmailUser) {
                 OutlinedButton(
-                    onClick = { showChangePasswordDialog = true },
+                    onClick  = { showChangePasswordDialog = true },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape    = RoundedCornerShape(12.dp),
                 ) {
                     Icon(Icons.Default.VpnKey, null)
                     Spacer(modifier = Modifier.width(8.dp))
@@ -297,19 +306,23 @@ fun ProfileScreen(
             } else {
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    shape    = RoundedCornerShape(12.dp),
+                    color    = MaterialTheme.colorScheme.surfaceVariant,
                 ) {
                     Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier              = Modifier.padding(14.dp),
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Icon(Icons.Default.Info, null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Info, null,
+                            tint     = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
                         Text(
                             "Password is managed by Google",
                             style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -331,15 +344,15 @@ fun ProfileScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape   = RoundedCornerShape(16.dp),
                 enabled = saveState !is AuthState.Loading &&
-                        saveState !is AuthState.AwaitingEmailConfirmation
+                        saveState !is AuthState.AwaitingEmailConfirmation,
             ) {
                 if (saveState is AuthState.Loading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = Color.White,
-                        strokeWidth = 2.dp
+                        modifier    = Modifier.size(20.dp),
+                        color       = Color.White,
+                        strokeWidth = 2.dp,
                     )
                 } else {
                     Text("Save Changes", fontWeight = FontWeight.Bold)
@@ -351,11 +364,11 @@ fun ProfileScreen(
     if (showChangePasswordDialog) {
         ChangePasswordDialog(
             changePasswordState = changePasswordState,
-            onDismiss = {
+            onDismiss           = {
                 showChangePasswordDialog = false
                 authViewModel.resetChangePasswordState()
             },
-            onConfirm = { newPassword -> authViewModel.changePassword(newPassword) }
+            onConfirm = { newPassword -> authViewModel.changePassword(newPassword) },
         )
     }
 }
@@ -367,7 +380,7 @@ fun ProfileScreen(
 suspend fun processAndCompressImage(context: Context, uri: Uri): ByteArray? =
     withContext(Dispatchers.IO) {
         val maxSizeBytes = 2 * 1024 * 1024
-        val inputStream = context.contentResolver.openInputStream(uri)
+        val inputStream  = context.contentResolver.openInputStream(uri)
             ?: return@withContext null
         val originalBytes = inputStream.readBytes()
         inputStream.close()
@@ -389,18 +402,18 @@ suspend fun processAndCompressImage(context: Context, uri: Uri): ByteArray? =
 
 @Composable
 private fun ChangePasswordDialog(
-    changePasswordState: AuthState,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    changePasswordState : AuthState,
+    onDismiss           : () -> Unit,
+    onConfirm           : (String) -> Unit,
 ) {
-    var newPassword by remember { mutableStateOf("") }
+    var newPassword     by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    var newVisible by remember { mutableStateOf(false) }
-    var confirmVisible by remember { mutableStateOf(false) }
+    var newVisible      by remember { mutableStateOf(false) }
+    var confirmVisible  by remember { mutableStateOf(false) }
 
     val passwordMismatch = confirmPassword.isNotBlank() && newPassword != confirmPassword
     val passwordTooShort = newPassword.isNotBlank() && newPassword.length < 6
-    val isFormValid = newPassword.length >= 6 &&
+    val isFormValid      = newPassword.length >= 6 &&
             newPassword == confirmPassword &&
             changePasswordState !is AuthState.Loading
 
@@ -409,75 +422,75 @@ private fun ChangePasswordDialog(
         icon = {
             Icon(
                 Icons.Default.VpnKey, null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
+                tint     = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp),
             )
         },
         title = { Text("Change Password", fontWeight = FontWeight.Bold) },
-        text = {
+        text  = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
-                    value = newPassword,
+                    value         = newPassword,
                     onValueChange = { newPassword = it },
-                    label = { Text("New Password") },
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    isError = passwordTooShort,
+                    label         = { Text("New Password") },
+                    shape         = RoundedCornerShape(12.dp),
+                    modifier      = Modifier.fillMaxWidth(),
+                    singleLine    = true,
+                    isError       = passwordTooShort,
                     visualTransformation = if (newVisible)
                         VisualTransformation.None else PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Default.Lock, null) },
+                    leadingIcon  = { Icon(Icons.Default.Lock, null) },
                     trailingIcon = {
                         IconButton(onClick = { newVisible = !newVisible }) {
                             Icon(
                                 if (newVisible) Icons.Default.Visibility
-                                else Icons.Default.VisibilityOff, null
+                                else Icons.Default.VisibilityOff, null,
                             )
                         }
                     },
                     supportingText = {
                         if (passwordTooShort) Text(
                             "At least 6 characters required",
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
                         )
-                    }
+                    },
                 )
                 OutlinedTextField(
-                    value = confirmPassword,
+                    value         = confirmPassword,
                     onValueChange = { confirmPassword = it },
-                    label = { Text("Confirm New Password") },
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    isError = passwordMismatch,
+                    label         = { Text("Confirm New Password") },
+                    shape         = RoundedCornerShape(12.dp),
+                    modifier      = Modifier.fillMaxWidth(),
+                    singleLine    = true,
+                    isError       = passwordMismatch,
                     visualTransformation = if (confirmVisible)
                         VisualTransformation.None else PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Default.Lock, null) },
+                    leadingIcon  = { Icon(Icons.Default.Lock, null) },
                     trailingIcon = {
                         IconButton(onClick = { confirmVisible = !confirmVisible }) {
                             Icon(
                                 if (confirmVisible) Icons.Default.Visibility
-                                else Icons.Default.VisibilityOff, null
+                                else Icons.Default.VisibilityOff, null,
                             )
                         }
                     },
                     supportingText = {
                         if (passwordMismatch) Text(
                             "Passwords do not match",
-                            color = MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error,
                         )
-                    }
+                    },
                 )
                 if (changePasswordState is AuthState.Error) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.errorContainer
+                        color = MaterialTheme.colorScheme.errorContainer,
                     ) {
                         Text(
                             changePasswordState.message,
                             modifier = Modifier.padding(10.dp),
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            style = MaterialTheme.typography.bodySmall
+                            color    = MaterialTheme.colorScheme.onErrorContainer,
+                            style    = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }
@@ -486,56 +499,56 @@ private fun ChangePasswordDialog(
         confirmButton = {
             Button(
                 onClick = { onConfirm(newPassword) },
-                enabled = isFormValid
+                enabled = isFormValid,
             ) {
                 if (changePasswordState is AuthState.Loading)
                     CircularProgressIndicator(
                         Modifier.size(16.dp),
                         Color.White,
-                        strokeWidth = 2.dp
+                        strokeWidth = 2.dp,
                     )
                 else Text("Update Password")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        },
     )
 }
 
 @Composable
 fun ProfileField(
-    label: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    icon: ImageVector,
-    isPassword: Boolean = false,
-    trailingIcon: ImageVector? = null,
-    trailingIconTint: Color = Color.Gray,
-    supportingText: String? = null
+    label            : String,
+    value            : String,
+    onValueChange    : (String) -> Unit,
+    icon             : ImageVector,
+    isPassword       : Boolean     = false,
+    trailingIcon     : ImageVector? = null,
+    trailingIconTint : Color        = Color.Gray,
+    supportingText   : String?      = null,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
     ) {
         Text(
             label,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 14.sp,
-            color = MaterialTheme.colorScheme.primary
+            fontSize   = 14.sp,
+            color      = MaterialTheme.colorScheme.primary,
         )
         OutlinedTextField(
-            value = value,
+            value         = value,
             onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            leadingIcon = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
-            trailingIcon = trailingIcon?.let { iv -> { Icon(iv, null, tint = trailingIconTint) } },
+            modifier      = Modifier.fillMaxWidth(),
+            shape         = RoundedCornerShape(12.dp),
+            leadingIcon   = { Icon(icon, null, tint = MaterialTheme.colorScheme.primary) },
+            trailingIcon  = trailingIcon?.let { iv -> { Icon(iv, null, tint = trailingIconTint) } },
             visualTransformation = if (isPassword)
                 PasswordVisualTransformation() else VisualTransformation.None,
             supportingText = supportingText?.let { { Text(it, color = trailingIconTint) } },
-            singleLine = true
+            singleLine     = true,
         )
     }
 }
@@ -547,20 +560,35 @@ fun ProfileField(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ProfileScreenStateless(
-    fullName: String, email: String, initials: String, avatarUrl: String?,
-    isEmailUser: Boolean, saveState: AuthState, onBack: () -> Unit
+    fullName    : String,
+    email       : String,
+    initials    : String,
+    avatarUrl   : String?,
+    isEmailUser : Boolean,
+    saveState   : AuthState,
+    onBack      : () -> Unit,
 ) {
+    var isNavigatingBack by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("My Profile", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = {
+                            if (!isNavigatingBack) {
+                                isNavigatingBack = true
+                                onBack()
+                            }
+                        },
+                        enabled = !isNavigatingBack,
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null)
                     }
-                }
+                },
             )
-        }
+        },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -568,7 +596,7 @@ private fun ProfileScreenStateless(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Box(modifier = Modifier.size(110.dp)) {
                 Box(
@@ -577,21 +605,21 @@ private fun ProfileScreenStateless(
                         .align(Alignment.Center)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     if (!avatarUrl.isNullOrBlank()) {
                         AsyncImage(
-                            model = avatarUrl,
+                            model            = avatarUrl,
                             contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
+                            contentScale     = ContentScale.Crop,
+                            modifier         = Modifier.fillMaxSize(),
                         )
                     } else {
                         Text(
                             initials,
-                            style = MaterialTheme.typography.headlineMedium,
+                            style      = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            color      = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
                 }
@@ -600,28 +628,28 @@ private fun ProfileScreenStateless(
                         .align(Alignment.BottomEnd)
                         .offset(x = (-4).dp, y = (-4).dp),
                     shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 ) {
                     Icon(
                         Icons.Default.CameraAlt, null,
-                        tint = Color.White,
+                        tint     = Color.White,
                         modifier = Modifier
                             .padding(6.dp)
-                            .size(18.dp)
+                            .size(18.dp),
                     )
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
             Text(fullName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(email, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+            Text(email, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(modifier = Modifier.height(32.dp))
             ProfileField("Full Name", fullName, {}, Icons.Default.Badge)
             ProfileField("Email Address", email, {}, Icons.Default.Email)
             Spacer(modifier = Modifier.height(32.dp))
             Button(
-                onClick = {},
+                onClick  = {},
                 modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape    = RoundedCornerShape(16.dp),
             ) { Text("Save Changes", fontWeight = FontWeight.Bold) }
         }
     }

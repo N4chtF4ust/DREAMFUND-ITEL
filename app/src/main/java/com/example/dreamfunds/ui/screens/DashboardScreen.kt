@@ -27,10 +27,11 @@ import com.example.dreamfunds.ui.components.dialogs.ContributeGoalDialog
 import com.example.dreamfunds.ui.components.buttons.DashboardFab
 import com.example.dreamfunds.ui.components.cards.GoalPaginatedRow
 import com.example.dreamfunds.ui.components.buttons.QuickActionButtons
+import com.example.dreamfunds.ui.components.common.DashboardSkeleton
 import com.example.dreamfunds.ui.components.common.SectionHeader
 import com.example.dreamfunds.ui.components.list.TransactionItem
 import com.example.dreamfunds.ui.components.list.TransactionPaginationFooter
-import com.example.dreamfunds.ui.theme.DreamFundsTheme // <-- IMPORTED YOUR THEME HERE
+import com.example.dreamfunds.ui.theme.DreamFundsTheme
 import com.example.dreamfunds.viewmodel.DashboardUiState
 import com.example.dreamfunds.viewmodel.DashboardViewModel
 
@@ -42,21 +43,27 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    var showAddBalanceDialog   by remember { mutableStateOf(false) }
-    var showAddExpenseDialog   by remember { mutableStateOf(false) }
-    var showAddGoalDialog      by remember { mutableStateOf(false) }
-    var showContributeDialog   by remember { mutableStateOf(false) }
-    var selectedGoal           by remember { mutableStateOf<SavingsGoal?>(null) }
-    var fabExpanded            by remember { mutableStateOf(false) }
+    var showAddBalanceDialog by remember { mutableStateOf(false) }
+    var showAddExpenseDialog by remember { mutableStateOf(false) }
+    var showAddGoalDialog    by remember { mutableStateOf(false) }
+    var showContributeDialog by remember { mutableStateOf(false) }
+    var selectedGoal         by remember { mutableStateOf<SavingsGoal?>(null) }
+    var fabExpanded          by remember { mutableStateOf(false) }
 
+    // Show skeleton when loading OR when data hasn't arrived yet (no error either)
+
+// AFTER (fixed)
+    val showSkeleton = !uiState.isInitialLoadDone
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("Dashboard",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold)
+                        Text(
+                            "Dashboard",
+                            style      = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
                         Text("Welcome back!", style = MaterialTheme.typography.bodySmall)
                     }
                 },
@@ -66,16 +73,16 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.loadAll() }) {
+                    IconButton(onClick = { viewModel.loadAll(showSkeleton = true) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                }
+                },
             )
         },
         floatingActionButton = {
             DashboardFab(
-                expanded = fabExpanded,
-                onToggle = { fabExpanded = !fabExpanded },
+                expanded          = fabExpanded,
+                onToggle          = { fabExpanded = !fabExpanded },
                 onAddBalanceClick = {
                     fabExpanded = false
                     showAddBalanceDialog = true
@@ -83,11 +90,12 @@ fun DashboardScreen(
                 onAddExpenseClick = {
                     fabExpanded = false
                     showAddExpenseDialog = true
-                }
+                },
             )
-        }
+        },
     ) { padding ->
 
+        // FAB backdrop
         if (fabExpanded) {
             Box(
                 modifier = Modifier
@@ -96,30 +104,37 @@ fun DashboardScreen(
             )
         }
 
-        if (uiState.isLoading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        } else {
-            LazyColumn(
+        // ── Skeleton ────────────────────────────────────────────────────────
+        if (showSkeleton) {
+            DashboardSkeleton(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 120.dp)
+            )
+        } else {
+            // ── Real content ───────────────────────────────────────────────
+            LazyColumn(
+                modifier       = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 120.dp),
             ) {
                 item {
                     BalanceSummaryCard(
                         totalBalance = uiState.totalBalance,
                         totalIncome  = uiState.totalIncome,
-                        totalExpense = uiState.totalExpense
+                        totalExpense = uiState.totalExpense,
                     )
                 }
+
                 item {
                     QuickActionButtons(
                         onAddBalanceClick = { showAddBalanceDialog = true },
-                        onAddExpenseClick = { showAddExpenseDialog = true }
+                        onAddExpenseClick = { showAddExpenseDialog = true },
                     )
                 }
+
+                // Error banner
                 uiState.error?.let { errorMsg ->
                     item {
                         Card(
@@ -127,38 +142,41 @@ fun DashboardScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            )
+                                containerColor = MaterialTheme.colorScheme.errorContainer,
+                            ),
                         ) {
                             Text(
                                 text     = "Error: $errorMsg",
                                 modifier = Modifier.padding(12.dp),
                                 color    = MaterialTheme.colorScheme.onErrorContainer,
-                                style    = MaterialTheme.typography.bodySmall
+                                style    = MaterialTheme.typography.bodySmall,
                             )
                         }
                     }
                 }
+
+                // ── Goals section ──────────────────────────────────────────
                 item {
                     SectionHeader(
-                        title = "Savings Goals",
+                        title       = "Savings Goals",
                         actionLabel = if (uiState.allGoals.isNotEmpty())
                             "${uiState.visibleGoals.size} / ${uiState.allGoals.size} • + New"
                         else "+ New Goal",
-                        onAction = { showAddGoalDialog = true }
+                        onAction    = { showAddGoalDialog = true },
                     )
                 }
+
                 if (uiState.allGoals.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
                         ) {
                             OutlinedButton(
                                 onClick = { showAddGoalDialog = true },
-                                shape   = RoundedCornerShape(14.dp)
+                                shape   = RoundedCornerShape(14.dp),
                             ) {
                                 Text("Create your first savings goal")
                             }
@@ -179,29 +197,32 @@ fun DashboardScreen(
                             },
                             onDelete = { goal ->
                                 goal.id?.let { viewModel.deleteGoal(it) }
-                            }
+                            },
                         )
                     }
                 }
+
+                // ── Transactions section ───────────────────────────────────
                 item {
                     SectionHeader(
-                        title = "Recent Activity",
+                        title       = "Recent Activity",
                         actionLabel = if (uiState.allTransactions.isNotEmpty())
                             "${uiState.visibleTransactions.size} / ${uiState.allTransactions.size}"
-                        else null
+                        else null,
                     )
                 }
+
                 if (uiState.visibleTransactions.isEmpty()) {
                     item {
                         Box(
-                            modifier = Modifier
+                            modifier         = Modifier
                                 .fillMaxWidth()
                                 .padding(32.dp),
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 "No activity yet. Add your balance to get started!",
-                                color = Color.Gray
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -209,9 +230,9 @@ fun DashboardScreen(
                     items(uiState.visibleTransactions) { transaction ->
                         TransactionItem(
                             transaction = transaction,
-                            onDelete = {
+                            onDelete    = {
                                 transaction.id?.let { viewModel.deleteTransaction(it) }
-                            }
+                            },
                         )
                     }
                     item {
@@ -219,20 +240,21 @@ fun DashboardScreen(
                             hasMore    = uiState.hasMoreTransactions,
                             totalShown = uiState.visibleTransactions.size,
                             totalCount = uiState.allTransactions.size,
-                            onLoadMore = { viewModel.loadMore() }
+                            onLoadMore = { viewModel.loadMore() },
                         )
                     }
                 }
             }
         }
 
+        // ── Dialogs ─────────────────────────────────────────────────────────
         if (showAddBalanceDialog) {
             AddBalanceDialog(
                 onDismiss    = { showAddBalanceDialog = false },
                 onAddBalance = { insert ->
                     viewModel.addTransaction(insert)
                     showAddBalanceDialog = false
-                }
+                },
             )
         }
         if (showAddExpenseDialog) {
@@ -242,7 +264,7 @@ fun DashboardScreen(
                 onAddExpense   = { insert ->
                     viewModel.addTransaction(insert)
                     showAddExpenseDialog = false
-                }
+                },
             )
         }
         if (showAddGoalDialog) {
@@ -251,7 +273,7 @@ fun DashboardScreen(
                 onAddGoal = { insert ->
                     viewModel.addGoal(insert)
                     showAddGoalDialog = false
-                }
+                },
             )
         }
         if (showContributeDialog && selectedGoal != null) {
@@ -266,7 +288,7 @@ fun DashboardScreen(
                     viewModel.contributeToGoal(selectedGoal!!, amount)
                     showContributeDialog = false
                     selectedGoal = null
-                }
+                },
             )
         }
     }
@@ -275,28 +297,29 @@ fun DashboardScreen(
 // ─────────────────────────────────────────────────────────────────────────────
 // Fake data for previews
 // ─────────────────────────────────────────────────────────────────────────────
+
 private val fakeGoals = listOf(
     SavingsGoal(
         id           = "1",
         name         = "Emergency Fund",
         targetAmount = 50000.0,
         savedAmount  = 32000.0,
-        colorHex     = "#4CAF50"
+        colorHex     = "#4CAF50",
     ),
     SavingsGoal(
         id           = "2",
         name         = "Japan Trip ✈️",
         targetAmount = 80000.0,
         savedAmount  = 15500.0,
-        colorHex     = "#2196F3"
+        colorHex     = "#2196F3",
     ),
     SavingsGoal(
         id           = "3",
         name         = "New Laptop 💻",
         targetAmount = 70000.0,
         savedAmount  = 70000.0,
-        colorHex     = "#9C27B0"
-    )
+        colorHex     = "#9C27B0",
+    ),
 )
 
 private val fakeTransactions = listOf(
@@ -306,7 +329,7 @@ private val fakeTransactions = listOf(
         amount          = 45000.0,
         category        = "Income",
         isIncome        = true,
-        transactionDate = "2026-03-01"
+        transactionDate = "2026-03-01",
     ),
     Transaction(
         id              = "2",
@@ -314,7 +337,7 @@ private val fakeTransactions = listOf(
         amount          = 2340.50,
         category        = "Food",
         isIncome        = false,
-        transactionDate = "2026-03-03"
+        transactionDate = "2026-03-03",
     ),
     Transaction(
         id              = "3",
@@ -322,7 +345,7 @@ private val fakeTransactions = listOf(
         amount          = 12000.0,
         category        = "Income",
         isIncome        = true,
-        transactionDate = "2026-03-05"
+        transactionDate = "2026-03-05",
     ),
     Transaction(
         id              = "4",
@@ -330,7 +353,7 @@ private val fakeTransactions = listOf(
         amount          = 1850.0,
         category        = "Utilities",
         isIncome        = false,
-        transactionDate = "2026-03-06"
+        transactionDate = "2026-03-06",
     ),
     Transaction(
         id              = "5",
@@ -338,27 +361,35 @@ private val fakeTransactions = listOf(
         amount          = 320.0,
         category        = "Food",
         isIncome        = false,
-        transactionDate = "2026-03-07"
-    )
+        transactionDate = "2026-03-07",
+    ),
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stateless shell used exclusively by previews — no ViewModel, no Supabase
+// Preview shell
 // ─────────────────────────────────────────────────────────────────────────────
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DashboardPreviewShell(uiState: DashboardUiState) {
     var showAddGoalDialog by remember { mutableStateOf(false) }
     var fabExpanded       by remember { mutableStateOf(false) }
 
+    val showSkeleton = uiState.isLoading ||
+            (uiState.allTransactions.isEmpty() &&
+                    uiState.allGoals.isEmpty() &&
+                    uiState.error == null)
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("Dashboard",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold)
+                        Text(
+                            "Dashboard",
+                            style      = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                        )
                         Text("Welcome back!", style = MaterialTheme.typography.bodySmall)
                     }
                 },
@@ -371,7 +402,7 @@ private fun DashboardPreviewShell(uiState: DashboardUiState) {
                     IconButton(onClick = {}) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                }
+                },
             )
         },
         floatingActionButton = {
@@ -379,65 +410,69 @@ private fun DashboardPreviewShell(uiState: DashboardUiState) {
                 expanded          = fabExpanded,
                 onToggle          = { fabExpanded = !fabExpanded },
                 onAddBalanceClick = { fabExpanded = false },
-                onAddExpenseClick = { fabExpanded = false }
+                onAddExpenseClick = { fabExpanded = false },
             )
-        }
+        },
     ) { padding ->
-        if (uiState.isLoading) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+
+        if (showSkeleton) {
+            DashboardSkeleton(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+            )
             return@Scaffold
         }
 
         LazyColumn(
             modifier       = Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 120.dp)
+            contentPadding = PaddingValues(bottom = 120.dp),
         ) {
             item {
                 BalanceSummaryCard(
                     totalBalance = uiState.totalBalance,
                     totalIncome  = uiState.totalIncome,
-                    totalExpense = uiState.totalExpense
+                    totalExpense = uiState.totalExpense,
                 )
             }
             item {
                 QuickActionButtons(onAddBalanceClick = {}, onAddExpenseClick = {})
             }
 
-            // Error banner
             uiState.error?.let { errorMsg ->
                 item {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                         colors   = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        )
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                        ),
                     ) {
-                        Text("Error: $errorMsg",
+                        Text(
+                            "Error: $errorMsg",
                             modifier = Modifier.padding(12.dp),
                             color    = MaterialTheme.colorScheme.onErrorContainer,
-                            style    = MaterialTheme.typography.bodySmall)
+                            style    = MaterialTheme.typography.bodySmall,
+                        )
                     }
                 }
             }
 
-            // Goals section
             item {
                 SectionHeader(
                     title       = "Savings Goals",
                     actionLabel = if (uiState.allGoals.isNotEmpty())
                         "${uiState.visibleGoals.size} / ${uiState.allGoals.size} • + New"
                     else "+ New Goal",
-                    onAction    = { showAddGoalDialog = true }
+                    onAction    = { showAddGoalDialog = true },
                 )
             }
             if (uiState.allGoals.isEmpty()) {
                 item {
                     Box(
-                        modifier         = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         OutlinedButton(onClick = {}, shape = RoundedCornerShape(14.dp)) {
                             Text("Create your first savings goal")
@@ -454,28 +489,29 @@ private fun DashboardPreviewShell(uiState: DashboardUiState) {
                         totalCount     = uiState.allGoals.size,
                         onLoadMore     = {},
                         onContribute   = {},
-                        onDelete       = {}
+                        onDelete       = {},
                     )
                 }
             }
 
-            // Transactions section
             item {
                 SectionHeader(
                     title       = "Recent Activity",
                     actionLabel = if (uiState.allTransactions.isNotEmpty())
                         "${uiState.visibleTransactions.size} / ${uiState.allTransactions.size}"
-                    else null
+                    else null,
                 )
             }
             if (uiState.visibleTransactions.isEmpty()) {
                 item {
                     Box(
                         modifier         = Modifier.fillMaxWidth().padding(32.dp),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text("No activity yet. Add your balance to get started!",
-                            color = Color.Gray)
+                        Text(
+                            "No activity yet. Add your balance to get started!",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             } else {
@@ -487,7 +523,7 @@ private fun DashboardPreviewShell(uiState: DashboardUiState) {
                         hasMore    = uiState.hasMoreTransactions,
                         totalShown = uiState.visibleTransactions.size,
                         totalCount = uiState.allTransactions.size,
-                        onLoadMore = {}
+                        onLoadMore = {},
                     )
                 }
             }
@@ -496,10 +532,18 @@ private fun DashboardPreviewShell(uiState: DashboardUiState) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Previews (Now using your actual DreamFundsTheme)
+// Previews
 // ─────────────────────────────────────────────────────────────────────────────
 
-@Preview(showBackground = true, name = "Dashboard — Empty State")
+@Preview(showBackground = true, name = "Dashboard — Skeleton (Loading)")
+@Composable
+private fun DashboardLoadingPreview() {
+    DreamFundsTheme {
+        DashboardPreviewShell(uiState = DashboardUiState(isLoading = true))
+    }
+}
+
+@Preview(showBackground = true, name = "Dashboard — Skeleton (Empty)")
 @Composable
 private fun DashboardEmptyPreview() {
     DreamFundsTheme {
@@ -522,17 +566,9 @@ private fun DashboardWithDataPreview() {
                 allTransactions     = fakeTransactions,
                 visibleTransactions = fakeTransactions,
                 hasMoreTransactions = false,
-                hasMoreGoals        = false
-            )
+                hasMoreGoals        = false,
+            ),
         )
-    }
-}
-
-@Preview(showBackground = true, name = "Dashboard — Loading")
-@Composable
-private fun DashboardLoadingPreview() {
-    DreamFundsTheme {
-        DashboardPreviewShell(uiState = DashboardUiState(isLoading = true))
     }
 }
 
@@ -546,8 +582,8 @@ private fun DashboardErrorPreview() {
                 totalBalance = 12000.0,
                 totalIncome  = 15000.0,
                 totalExpense = 3000.0,
-                error        = "Network timeout. Pull to refresh."
-            )
+                error        = "Network timeout. Pull to refresh.",
+            ),
         )
     }
 }
@@ -564,8 +600,8 @@ private fun DashboardGoalsOnlyPreview() {
                 totalExpense = 0.0,
                 allGoals     = fakeGoals,
                 visibleGoals = fakeGoals,
-                hasMoreGoals = false
-            )
+                hasMoreGoals = false,
+            ),
         )
     }
 }

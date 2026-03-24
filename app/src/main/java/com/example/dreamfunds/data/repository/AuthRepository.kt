@@ -6,6 +6,7 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
+import io.github.jan.supabase.exceptions.RestException
 
 class AuthRepository {
 
@@ -16,14 +17,22 @@ class AuthRepository {
     /** Sign up with email + password. */
     suspend fun register(fullName: String, email: String, password: String): Result<Unit> {
         return try {
-            auth.signUpWith(Email, redirectUrl = "dreamfunds://auth/callback") {
-                this.email    = email
+            val user = auth.signUpWith(Email, redirectUrl = "dreamfunds://auth/callback") {
+                this.email = email
                 this.password = password
                 data = kotlinx.serialization.json.buildJsonObject {
                     put("full_name", kotlinx.serialization.json.JsonPrimitive(fullName))
                 }
             }
+
+            // If identities is null or empty, email is already taken
+            if (user?.identities.isNullOrEmpty()) {
+                return Result.failure(Exception("An account with this email already exists."))
+            }
+
             Result.success(Unit)
+        } catch (e: RestException) {
+            Result.failure(Exception(e.error ?: "Registration failed."))
         } catch (e: Exception) {
             Result.failure(e)
         }

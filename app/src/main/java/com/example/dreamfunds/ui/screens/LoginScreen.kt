@@ -26,13 +26,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.dreamfunds.R
 import com.example.dreamfunds.SupabaseClientProvider
-import com.example.dreamfunds.ui.theme.DreamFundsTheme // <-- IMPORTED YOUR THEME HERE
+import com.example.dreamfunds.ui.theme.DreamFundsTheme
 import com.example.dreamfunds.viewmodel.AuthState
 import com.example.dreamfunds.viewmodel.AuthViewModel
 import io.github.jan.supabase.compose.auth.composeAuth
 import io.github.jan.supabase.compose.auth.composable.NativeSignInResult
 import io.github.jan.supabase.compose.auth.composable.rememberSignInWithGoogle
-
+import com.example.dreamfunds.utils.rememberDebouncedAction
 @Composable
 fun LoginScreen(
     authViewModel: AuthViewModel,
@@ -44,15 +44,21 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
 
     val authState by authViewModel.authState.collectAsState()
+    val onRegisterClickDebounced = rememberDebouncedAction(delayMs = 500L, block = onRegisterClick)
+
+
+
+    var navigated by remember { mutableStateOf(false) }
 
     LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
+        if (authState is AuthState.Success && !navigated) {
+            navigated = true
             authViewModel.resetState()
             onLoginSuccess()
         }
     }
 
-    val googleSignIn = SupabaseClientProvider.client.composeAuth.rememberSignInWithGoogle(
+    val googleSignIn = remember { SupabaseClientProvider.client.composeAuth}.rememberSignInWithGoogle(
         onResult = { result ->
             when (result) {
                 NativeSignInResult.Success      -> authViewModel.onGoogleSignInSuccess()
@@ -71,12 +77,15 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         // ── Brand — app logo ──────────────────────────────────────
+        val logoPainter = painterResource(R.drawable.dreamfunds_logo)
+
         Image(
-            painter            = painterResource(id = R.drawable.dreamfunds_logo),
+            painter = logoPainter,
             contentDescription = "DreamFunds Logo",
-            modifier           = Modifier.size(100.dp),
-            contentScale       = ContentScale.Fit
+            modifier = Modifier.size(100.dp),
+            contentScale = ContentScale.Fit
         )
+
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             "DreamFunds",
@@ -206,10 +215,12 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+
+
         // ── Register link ─────────────────────────────────────────
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Don't have an account?")
-            TextButton(onClick = onRegisterClick) {
+            TextButton(onClick = onRegisterClickDebounced) {
                 Text("REGISTER", fontWeight = FontWeight.Bold)
             }
         }

@@ -1,4 +1,3 @@
-// ui/components/GoalCard.kt
 package com.example.dreamfunds.ui.components.cards
 
 import androidx.compose.foundation.background
@@ -21,12 +20,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.dreamfunds.data.model.SavingsGoal
+import java.text.NumberFormat
+import java.util.Locale
 
 // Shared fixed height — both GoalCard and LoadMoreGoalCard use this exact value
 // so they are always the same height in the LazyRow without IntrinsicSize
 // (which crashes on lazy layouts).
 private val GOAL_CARD_HEIGHT: Dp = 230.dp
-private val GOAL_CARD_WIDTH: Dp  = 180.dp
+private val GOAL_CARD_WIDTH: Dp = 180.dp
 private val LOAD_MORE_CARD_WIDTH: Dp = 120.dp
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,16 +48,20 @@ fun GoalPaginatedRow(
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         LazyRow(
-            state                 = listState,
-            contentPadding        = PaddingValues(horizontal = 16.dp),
+            state = listState,
+            contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(goals, key = { it.id ?: it.name }) { goal ->
+            // Fixed: Use items with explicit key parameter
+            items(
+                items = goals,
+                key = { goal -> goal.id ?: goal.name }
+            ) { goal ->
                 GoalCard(
-                    goal           = goal,
+                    goal = goal,
                     currentBalance = currentBalance,
-                    onContribute   = { onContribute(goal) },
-                    onDelete       = { onDelete(goal) }
+                    onContribute = { onContribute(goal) },
+                    onDelete = { onDelete(goal) }
                 )
             }
 
@@ -64,7 +69,7 @@ fun GoalPaginatedRow(
                 item {
                     LoadMoreGoalCard(
                         remaining = totalCount - totalShown,
-                        onClick   = onLoadMore
+                        onClick = onLoadMore
                     )
                 }
             }
@@ -84,11 +89,11 @@ fun GoalPaginatedRow(
 private fun GoalPageIndicator(totalShown: Int, totalCount: Int) {
     if (totalCount <= 1) return
     Row(
-        modifier              = Modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.Center,
-        verticalAlignment     = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically
     ) {
         repeat(totalCount) { index ->
             val isVisible = index < totalShown
@@ -118,24 +123,24 @@ private fun LoadMoreGoalCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier  = Modifier
+        modifier = Modifier
             .width(LOAD_MORE_CARD_WIDTH)
-            .height(GOAL_CARD_HEIGHT),          // ← same constant as GoalCard
-        shape     = RoundedCornerShape(20.dp),
-        colors    = CardDefaults.cardColors(
+            .height(GOAL_CARD_HEIGHT),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
-            modifier            = Modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Box(
-                modifier         = Modifier
+                modifier = Modifier
                     .size(44.dp)
                     .background(
                         MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
@@ -146,32 +151,32 @@ private fun LoadMoreGoalCard(
                 Icon(
                     Icons.Default.KeyboardArrowRight,
                     contentDescription = "Load more goals",
-                    tint     = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text       = "+$remaining more",
-                style      = MaterialTheme.typography.labelMedium,
+                text = "+$remaining more",
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
-                color      = MaterialTheme.colorScheme.primary,
-                textAlign  = TextAlign.Center
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text      = "goal${if (remaining != 1) "s" else ""}",
-                style     = MaterialTheme.typography.labelSmall,
-                color     = Color.Gray,
+                text = "goal${if (remaining != 1) "s" else ""}",
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedButton(
-                onClick        = onClick,
-                shape          = RoundedCornerShape(10.dp),
-                modifier       = Modifier.fillMaxWidth(),
+                onClick = onClick,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
-                border         = ButtonDefaults.outlinedButtonBorder
+                border = ButtonDefaults.outlinedButtonBorder
             ) {
                 Text("Show", style = MaterialTheme.typography.labelSmall)
             }
@@ -179,8 +184,15 @@ private fun LoadMoreGoalCard(
     }
 }
 
+// Helper function to format currency
+private fun formatCurrency(amount: Double): String {
+    val format = NumberFormat.getCurrencyInstance(Locale("en", "PH"))
+    format.maximumFractionDigits = 0
+    return format.format(amount)
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// GoalCard — single card
+// GoalCard — single card (FIXED VERSION)
 // ─────────────────────────────────────────────────────────────────────────────
 @Composable
 fun GoalCard(
@@ -189,16 +201,17 @@ fun GoalCard(
     onContribute: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val color       = goal.toComposeColor()
-    val progress    = (goal.savedAmount / goal.targetAmount).toFloat().coerceIn(0f, 1f)
+    val color = goal.toComposeColor()
+    val progress = (goal.savedAmount / goal.targetAmount).toFloat().coerceIn(0f, 1f)
     val isCompleted = goal.savedAmount >= goal.targetAmount
+    val remainingAmount = goal.targetAmount - goal.savedAmount
 
     Card(
-        modifier  = Modifier
+        modifier = Modifier
             .width(GOAL_CARD_WIDTH)
-            .height(GOAL_CARD_HEIGHT),          // ← same constant as LoadMoreGoalCard
-        shape     = RoundedCornerShape(20.dp),
-        colors    = CardDefaults.cardColors(
+            .height(GOAL_CARD_HEIGHT),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
             containerColor = if (isCompleted)
                 color.copy(alpha = 0.15f)
             else
@@ -216,62 +229,81 @@ fun GoalCard(
             Column {
                 // Header: status icon + delete button
                 Row(
-                    modifier              = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment     = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
-                        modifier         = Modifier
+                        modifier = Modifier
                             .size(36.dp)
                             .background(color.copy(alpha = 0.2f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             if (isCompleted) Icons.Default.CheckCircle else Icons.Default.Star,
-                            null, tint = color, modifier = Modifier.size(18.dp)
+                            null,
+                            tint = color,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(24.dp)
+                    ) {
                         Icon(
-                            Icons.Default.Close, contentDescription = "Delete goal",
-                            tint = Color.Gray, modifier = Modifier.size(14.dp)
+                            Icons.Default.Close,
+                            contentDescription = "Delete goal",
+                            tint = Color.Gray,
+                            modifier = Modifier.size(14.dp)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // Goal Name
                 Text(
                     goal.name,
                     fontWeight = FontWeight.Bold,
-                    style      = MaterialTheme.typography.bodyMedium,
-                    maxLines   = 1
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                 )
+
+                // Amount Display - FIXED: Proper currency formatting
                 Text(
-                    "₱${String.format("%,.0f", goal.savedAmount)} / ₱${String.format("%,.0f", goal.targetAmount)}",
+                    text = "${formatCurrency(goal.savedAmount)} / ${formatCurrency(goal.targetAmount)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
+
+                // Progress Bar
                 LinearProgressIndicator(
-                    progress   = { progress },
-                    modifier   = Modifier.fillMaxWidth().height(7.dp).clip(CircleShape),
-                    color      = color,
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(7.dp)
+                        .clip(CircleShape),
+                    color = color,
                     trackColor = color.copy(alpha = 0.15f)
                 )
+
+                // Percentage and Remaining
                 Row(
-                    modifier              = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         "${(progress * 100).toInt()}%",
-                        style      = MaterialTheme.typography.labelSmall,
-                        color      = color,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = color,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         if (isCompleted) "Done! 🎉"
-                        else "₱${String.format("%,.0f", goal.targetAmount - goal.savedAmount)} left",
+                        else "${formatCurrency(remainingAmount)} left",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (isCompleted) color else Color.Gray
                     )
@@ -280,17 +312,23 @@ fun GoalCard(
 
             // Bottom: Contribute button always pinned to bottom
             Button(
-                onClick        = onContribute,
-                modifier       = Modifier.fillMaxWidth().height(32.dp),
-                shape          = RoundedCornerShape(10.dp),
+                onClick = onContribute,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp),
+                shape = RoundedCornerShape(10.dp),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                colors         = ButtonDefaults.buttonColors(
-                    containerColor         = if (isCompleted || currentBalance <= 0.0) Color.Gray else color,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isCompleted || currentBalance <= 0.0) Color.Gray else color,
                     disabledContainerColor = Color.Gray.copy(alpha = 0.4f)
                 ),
                 enabled = !isCompleted && currentBalance > 0.0
             ) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(13.dp))
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(13.dp)
+                )
                 Spacer(modifier = Modifier.width(3.dp))
                 Text(
                     if (isCompleted) "Completed" else "Contribute",
